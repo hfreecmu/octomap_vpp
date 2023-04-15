@@ -1,10 +1,10 @@
-#include "octomap_vpp/TSDFOcTree.h"
+#include "octomap_vpp/TsdfOcTree.h"
 #include <algorithm>
 
 namespace octomap_vpp
 {
 
-void TSDFOcTreeNode::updateTsdfVoxel(const float w, const float sdf, 
+void TsdfOcTreeNode::updateTsdfVoxel(const float w, const float sdf, 
                                     const float defaultTruncationDistance,
                                     const float dropoffEpsilon,
                                     bool useWeightDropoff,
@@ -44,14 +44,14 @@ void TSDFOcTreeNode::updateTsdfVoxel(const float w, const float sdf,
 
 }
 
-TSDFOcTree::TSDFOcTree(double resolution,
+TsdfOcTree::TsdfOcTree(double resolution,
                        float truncationDistance,
                        float maxrange,
                        bool useConstWeight,
                        bool useWeightDropoff,
                        float dropOffEpsilon,
                        float maxWeight) 
-: octomap::OccupancyOcTreeBase <TSDFOcTreeNode>(resolution),
+: octomap::OccupancyOcTreeBase <TsdfOcTreeNode>(resolution),
   truncationDistance(truncationDistance),
   maxrange(maxrange),
   useConstWeight(useConstWeight),
@@ -62,10 +62,10 @@ TSDFOcTree::TSDFOcTree(double resolution,
   ocTreeMemberInit.ensureLinking();
 }
 
-TSDFOcTree::StaticMemberInitializer TSDFOcTree::ocTreeMemberInit;
+TsdfOcTree::StaticMemberInitializer TsdfOcTree::ocTreeMemberInit;
 
 //Needs to be in camera frame
-void TSDFOcTree::insertPointCloud(const octomap::Pointcloud& scan, 
+void TsdfOcTree::insertPointCloud(const octomap::Pointcloud& scan, 
                                   const octomap::point3d& sensor_origin,
                                   octomath::Pose6D world2cam,
                                   bool discretize)
@@ -78,7 +78,7 @@ void TSDFOcTree::insertPointCloud(const octomap::Pointcloud& scan,
         computeUpdate(scan, sensor_origin, world2cam);
 }
 
-void TSDFOcTree::computeDiscreteUpdate(const octomap::Pointcloud& scan, 
+void TsdfOcTree::computeDiscreteUpdate(const octomap::Pointcloud& scan, 
                                        const octomap::point3d& sensor_origin,
                                        octomath::Pose6D world2cam)
 {
@@ -97,7 +97,7 @@ void TSDFOcTree::computeDiscreteUpdate(const octomap::Pointcloud& scan,
    computeUpdate(discretePC, sensor_origin, world2cam);
 }
 
-void TSDFOcTree::computeUpdate(const octomap::Pointcloud& scan, 
+void TsdfOcTree::computeUpdate(const octomap::Pointcloud& scan, 
                                const octomap::point3d& sensor_origin,
                                octomath::Pose6D world2cam)
 {
@@ -150,7 +150,7 @@ void TSDFOcTree::computeUpdate(const octomap::Pointcloud& scan,
 }
 
 //TODO assuming here that sphere is within max distance, like others
-void TSDFOcTree::computeUpdate(const octomap::Pointcloud& scan,
+void TsdfOcTree::computeUpdate(const octomap::Pointcloud& scan,
                                const octomap::Pointcloud& origins,
                                const octomap::Pointcloud& endPoints,
                                octomath::Pose6D world2cam)
@@ -188,7 +188,7 @@ void TSDFOcTree::computeUpdate(const octomap::Pointcloud& scan,
 }
 
 //Needs to be in camera frame
-float TSDFOcTree::getVoxelWeight(const octomap::point3d& point, bool use_const_weight) const
+float TsdfOcTree::getVoxelWeight(const octomap::point3d& point, bool use_const_weight) const
 {
     if (use_const_weight)
         return 1.0;
@@ -201,7 +201,7 @@ float TSDFOcTree::getVoxelWeight(const octomap::point3d& point, bool use_const_w
     return 1.0 / (dist_z*dist_z);
 }
 
-float TSDFOcTree::computeDistance(const octomap::point3d& origin,
+float TsdfOcTree::computeDistance(const octomap::point3d& origin,
                                   const octomap::point3d& point,
                                   const octomap::point3d& voxel_center)
 {
@@ -217,7 +217,7 @@ float TSDFOcTree::computeDistance(const octomap::point3d& origin,
     return sdf;
 }
 
-TSDFOcTreeNode* TSDFOcTree::updateNode(const octomap::OcTreeKey& key,
+TsdfOcTreeNode* TsdfOcTree::updateNode(const octomap::OcTreeKey& key,
                                        const float w, const float sdf, 
                                        const float defaultTruncationDistance,
                                        const float dropoffEpsilon,
@@ -226,7 +226,7 @@ TSDFOcTreeNode* TSDFOcTree::updateNode(const octomap::OcTreeKey& key,
 {
     bool createdRoot = false;
     if (this->root == NULL){
-      this->root = new TSDFOcTreeNode();
+      this->root = new TsdfOcTreeNode();
       this->tree_size++;
       createdRoot = true;
     }
@@ -234,7 +234,7 @@ TSDFOcTreeNode* TSDFOcTree::updateNode(const octomap::OcTreeKey& key,
     return updateNodeRecurs(this->root, createdRoot, key, 0, w, sdf);
 }
 
-TSDFOcTreeNode* TSDFOcTree::updateNodeRecurs(TSDFOcTreeNode* node, 
+TsdfOcTreeNode* TsdfOcTree::updateNodeRecurs(TsdfOcTreeNode* node, 
                                              bool node_just_created,
                                              const octomap::OcTreeKey& key,
                                              unsigned int depth,
@@ -274,7 +274,7 @@ TSDFOcTreeNode* TSDFOcTree::updateNodeRecurs(TSDFOcTreeNode* node,
     }
 }
 
-void TSDFOcTree::extractSurfacePontCloud(pcl::PointCloud<pcl::PointXYZ> &cloud)
+void TsdfOcTree::extractSurfacePontCloud(pcl::PointCloud<pcl::PointXYZ> &cloud)
 {
     const float surface_distance_thresh = resolution*0.75;
 
@@ -282,11 +282,11 @@ void TSDFOcTree::extractSurfacePontCloud(pcl::PointCloud<pcl::PointXYZ> &cloud)
 
     cloud.clear();
 
-    for(TSDFOcTree::leaf_iterator it = this->begin_leafs(), end=this->end_leafs(); it!= end; ++it)
+    for(TsdfOcTree::leaf_iterator it = this->begin_leafs(), end=this->end_leafs(); it!= end; ++it)
     {
         octomap::OcTreeKey key = it.getKey();
 
-        TSDFOcTreeNode* node = this->search(key);
+        TsdfOcTreeNode* node = this->search(key);
         //should not happen
         if (node == nullptr)
             continue;

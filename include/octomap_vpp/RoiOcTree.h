@@ -1,7 +1,7 @@
 ﻿#ifndef ROIOCTREE_H
 #define ROIOCTREE_H
 
-#include <octomap/OcTreeNode.h>
+#include "VPBaseNode.h"
 #include <octomap/OccupancyOcTreeBase.h>
 #include "octomap/octomap_utils.h"
 #include <vector>
@@ -17,19 +17,19 @@
 namespace octomap_vpp
 {
 
-class RoiOcTreeNode : public octomap::OcTreeNode
+class RoiOcTreeNode : public VPBaseNode
 {
 public:
-  RoiOcTreeNode() : OcTreeNode(), roiValue(0) {}
+  RoiOcTreeNode() : VPBaseNode(), roiValue(0) {}
 
-  RoiOcTreeNode(const RoiOcTreeNode& rhs) : OcTreeNode(rhs), roiValue(rhs.roiValue) {}
+  RoiOcTreeNode(const RoiOcTreeNode& rhs) : VPBaseNode(rhs), roiValue(rhs.roiValue) {}
 
   bool operator==(const RoiOcTreeNode& rhs) const{
     return (rhs.value == value && rhs.roiValue == roiValue);
   }
 
   void copyData(const RoiOcTreeNode& from){
-    OcTreeNode::copyData(from);
+    VPBaseNode::copyData(from);
     roiValue = from.roiValue;
   }
 
@@ -87,6 +87,17 @@ public:
 
   /// adds p to the node's logOdds value (with no boundary / threshold checking!)
   void addRoiValue(const float& p);
+
+  virtual double getVPOccupancy() const override
+  { 
+    return getOccupancy();
+  }
+
+  virtual bool isHardUnknown() const override
+  {
+    //if in map we know it
+    return false;
+  }
 
 protected:
   float roiValue;

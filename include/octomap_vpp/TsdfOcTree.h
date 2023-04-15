@@ -1,7 +1,7 @@
 #ifndef TSDFOCTREE_H
 #define TSDFOCTREE_H
 
-#include <octomap/OcTreeNode.h>
+#include "VPBaseNode.h"
 #include <octomap/OccupancyOcTreeBase.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -10,19 +10,19 @@
 namespace octomap_vpp
 {
 
-class TSDFOcTreeNode : public octomap::OcTreeNode
+class TsdfOcTreeNode : public VPBaseNode
 {
 public:
-  TSDFOcTreeNode() : OcTreeNode(), distance(0), weight(0) {}
+  TsdfOcTreeNode() : VPBaseNode(), distance(0), weight(0) {}
 
-  TSDFOcTreeNode(const TSDFOcTreeNode& rhs) : OcTreeNode(rhs), distance(rhs.distance), weight(rhs.weight) {}
+  TsdfOcTreeNode(const TsdfOcTreeNode& rhs) : VPBaseNode(rhs), distance(rhs.distance), weight(rhs.weight) {}
 
-  bool operator==(const TSDFOcTreeNode& rhs) const{
+  bool operator==(const TsdfOcTreeNode& rhs) const{
     return (rhs.distance == distance && rhs.weight == rhs.weight);
   }
 
-  void copyData(const TSDFOcTreeNode& from){
-    OcTreeNode::copyData(from);
+  void copyData(const TsdfOcTreeNode& from){
+    VPBaseNode::copyData(from);
     distance = from.distance;
     weight = from.weight;
   }
@@ -63,7 +63,7 @@ public:
     weight = w;
   }
 
-  inline double getOccupancy() const
+  virtual double getVPOccupancy() const override
   { 
     if (std::abs(weight) < 1e-6)
       return 0.5; 
@@ -74,12 +74,9 @@ public:
     return 0.0;
   }
 
-  inline double isUnknown() const
+  virtual bool isHardUnknown() const override
   {
-    if (std::abs(weight) < 1e-6)
-      return true;
-
-    return false;
+     return (std::abs(weight) < 1e-6);
   }
 
   /// adds p to the node's logOdds value (with no boundary / threshold checking!)
@@ -95,10 +92,10 @@ protected:
   float weight;
 };
 
-class TSDFOcTree : public octomap::OccupancyOcTreeBase <TSDFOcTreeNode>
+class TsdfOcTree : public octomap::OccupancyOcTreeBase <TsdfOcTreeNode>
 {
 public:
-    TSDFOcTree(double resolution,
+    TsdfOcTree(double resolution,
                float truncationDistance,
                float maxrange,
                bool useConstWeight,
@@ -106,7 +103,7 @@ public:
                float dropOffEpsilon,
                float maxWeight);
 
-    virtual TSDFOcTree* create() const {return new TSDFOcTree(resolution,
+    virtual TsdfOcTree* create() const {return new TsdfOcTree(resolution,
                                                                truncationDistance,
                                                                maxrange,
                                                                useConstWeight,
@@ -114,7 +111,7 @@ public:
                                                                dropOffEpsilon,
                                                                maxWeight); }
 
-    virtual std::string getTreeType() const {return "TSDFOcTree";}
+    virtual std::string getTreeType() const {return "TsdfOcTree";}
 
     virtual void insertPointCloud(const octomap::Pointcloud& scan, 
                                   const octomap::point3d& sensor_origin,
@@ -140,14 +137,14 @@ public:
                           const octomap::point3d& point,
                           const octomap::point3d& voxel_center);
 
-    TSDFOcTreeNode* updateNode(const octomap::OcTreeKey& key,
+    TsdfOcTreeNode* updateNode(const octomap::OcTreeKey& key,
                                const float w, const float sdf, 
                                const float defaultTruncationDistance,
                                const float dropoffEpsilon,
                                bool useWeightDropoff,
                                float maxWeight);
 
-    TSDFOcTreeNode* updateNodeRecurs(TSDFOcTreeNode* node,
+    TsdfOcTreeNode* updateNodeRecurs(TsdfOcTreeNode* node,
                                     bool node_just_created,
                                     const octomap::OcTreeKey& key,
                                     unsigned int depth,
@@ -165,7 +162,7 @@ protected:
   class StaticMemberInitializer{
   public:
     StaticMemberInitializer() {
-      TSDFOcTree* tree = new TSDFOcTree(0.1, 0.004, 1.0, false, true, 0.001, 10000.0);
+      TsdfOcTree* tree = new TsdfOcTree(0.1, 0.004, 1.0, false, true, 0.001, 10000.0);
       tree->clearKeyRays();
       AbstractOcTree::registerTreeType(tree);
     }
