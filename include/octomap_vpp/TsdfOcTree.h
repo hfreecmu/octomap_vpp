@@ -79,13 +79,19 @@ public:
      return (std::abs(weight) < 1e-6);
   }
 
-  /// adds p to the node's logOdds value (with no boundary / threshold checking!)
   void updateTsdfVoxel(const float w, const float sdf, 
                        const float defaultTruncationDistance,
                        const float dropoffEpsilon,
                        bool useWeightDropoff,
-                       float maxWeight
-                      );
+                       float maxWeight);
+
+  static void updateVoxel(const float w, const float sdf, 
+                              const float defaultTruncationDistance,
+                              const float dropoffEpsilon,
+                              bool useWeightDropoff,
+                              float maxWeight,
+                              float &voxelDistance,
+                              float &voxelWeight);
 
 protected:
   float distance;
@@ -95,60 +101,28 @@ protected:
 class TsdfOcTree : public octomap::OccupancyOcTreeBase <TsdfOcTreeNode>
 {
 public:
-    TsdfOcTree(double resolution,
-               float truncationDistance,
-               float maxrange,
-               bool useConstWeight,
-               bool useWeightDropoff,
-               float dropOffEpsilon,
-               float maxWeight);
+    TsdfOcTree(double resolution);
 
-    virtual TsdfOcTree* create() const {return new TsdfOcTree(resolution,
-                                                               truncationDistance,
-                                                               maxrange,
-                                                               useConstWeight,
-                                                               useWeightDropoff,
-                                                               dropOffEpsilon,
-                                                               maxWeight); }
+    virtual TsdfOcTree* create() const {return new TsdfOcTree(resolution); }
 
     virtual std::string getTreeType() const {return "TsdfOcTree";}
-
-    virtual void insertPointCloud(const octomap::Pointcloud& scan, 
-                                  const octomap::point3d& sensor_origin,
-                                  octomath::Pose6D world2cam,
-                                  bool discretize);
-
-    void computeDiscreteUpdate(const octomap::Pointcloud& scan, 
-                              const octomap::point3d& sensor_origin,
-                              octomath::Pose6D world2cam);
-    
-    void computeUpdate(const octomap::Pointcloud& scan, 
-                       const octomap::point3d& sensor_origin,
-                       octomath::Pose6D world2cam);
-
-    void computeUpdate(const octomap::Pointcloud& scan,
-                       const octomap::Pointcloud& origins,
-                       const octomap::Pointcloud& endPoints,
-                       octomath::Pose6D world2cam);
-
-    float getVoxelWeight(const octomap::point3d& point, bool use_const_weight) const;
-
-    float computeDistance(const octomap::point3d& origin,
-                          const octomap::point3d& point,
-                          const octomap::point3d& voxel_center);
 
     TsdfOcTreeNode* updateNode(const octomap::OcTreeKey& key,
                                const float w, const float sdf, 
                                const float defaultTruncationDistance,
                                const float dropoffEpsilon,
-                               bool useWeightDropoff,
-                               float maxWeight);
+                               const bool useWeightDropoff,
+                               const float maxWeight);
 
     TsdfOcTreeNode* updateNodeRecurs(TsdfOcTreeNode* node,
                                     bool node_just_created,
                                     const octomap::OcTreeKey& key,
                                     unsigned int depth,
-                                    const float w, const float sdf);
+                                    const float w, const float sdf,
+                                    const float defaultTruncationDistance,
+                                    const float dropoffEpsilon,
+                                    const bool useWeightDropoff,
+                                    const float maxWeight);
 
     void extractSurfacePontCloud(pcl::PointCloud<pcl::PointXYZ> &cloud);
 protected:
@@ -162,7 +136,7 @@ protected:
   class StaticMemberInitializer{
   public:
     StaticMemberInitializer() {
-      TsdfOcTree* tree = new TsdfOcTree(0.1, 0.004, 1.0, false, true, 0.001, 10000.0);
+      TsdfOcTree* tree = new TsdfOcTree(0.1);
       tree->clearKeyRays();
       AbstractOcTree::registerTreeType(tree);
     }
@@ -177,13 +151,6 @@ protected:
 
   /// to ensure static initialization (only once)
   static StaticMemberInitializer ocTreeMemberInit;
-
-   float truncationDistance;
-   float maxrange;
-   bool useConstWeight;
-   bool useWeightDropoff;
-   float dropOffEpsilon;
-   float maxWeight;
 };
 
 }
