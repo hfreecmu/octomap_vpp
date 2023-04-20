@@ -79,6 +79,12 @@ public:
      return (std::abs(weight) < 1e-6);
   }
 
+  virtual float getVPRoiLogOdds() const override
+  {
+    return -FLT_MAX;
+  }
+
+
   void updateTsdfVoxel(const float w, const float sdf, 
                        const float defaultTruncationDistance,
                        const float dropoffEpsilon,

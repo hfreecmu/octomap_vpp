@@ -15,6 +15,13 @@ public:
 
   virtual bool isHardUnknown() const = 0;
 
+  virtual float getVPRoiLogOdds() const = 0;
+
+  float getVPLogOdds() const
+  {
+    return octomap::logodds(getVPOccupancy());
+  }
+
   bool isUnknown(float minThresh, float maxThresh) const
   {
     if (isHardUnknown())

@@ -3,6 +3,7 @@
 
 #include "VPBaseNode.h"
 #include <octomap/OccupancyOcTreeBase.h>
+#include <cfloat>
 
 namespace octomap_vpp
 {
@@ -44,6 +45,11 @@ public:
   {
     //if in map we know it
     return false;
+  }
+
+  virtual float getVPRoiLogOdds() const override
+  {
+    return -FLT_MAX;
   }
 };
 

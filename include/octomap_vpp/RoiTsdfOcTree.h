@@ -67,6 +67,17 @@ public:
     roiWeight = rw;
   }
 
+  virtual float getVPRoiLogOdds() const override
+  {
+    if (std::abs(roiWeight) < 1e-6)
+      return 0.0; 
+
+    if (distance <= 0)
+      return FLT_MAX;
+
+    return -FLT_MAX;
+  }
+
   void updateRoiTsdfVoxel(const float w, const float sdf, 
                           const float defaultTruncationDistance,
                           const float dropoffEpsilon,

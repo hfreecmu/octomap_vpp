@@ -99,6 +99,11 @@ public:
     return false;
   }
 
+  virtual float getVPRoiLogOdds() const override
+  {
+    return getRoiLogOdds();
+  }
+
 protected:
   float roiValue;
 };
