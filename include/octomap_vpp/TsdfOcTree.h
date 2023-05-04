@@ -130,7 +130,7 @@ public:
                                     const bool useWeightDropoff,
                                     const float maxWeight);
 
-    void extractSurfacePontCloud(pcl::PointCloud<pcl::PointXYZ> &cloud);
+    void extractSurfacePontCloud(pcl::PointCloud<pcl::PointXYZRGB> &cloud);
 protected:
    /**
    * Static member object which ensures that this OcTree's prototype

@@ -106,37 +106,6 @@ void RoiTsdfOcTree::extractRoiSurfacePontCloud(pcl::PointCloud<pcl::PointXYZRGB>
 
     for(RoiTsdfOcTree::leaf_iterator it = this->begin_leafs(), end=this->end_leafs(); it!= end; ++it)
     {
-        // octomap::OcTreeKey key = it.getKey();
-
-        // RoiTsdfOcTreeNode* node = this->search(key);
-        // //should not happen
-        // if (node == nullptr)
-        //     continue;
-
-        // if (node->getWeight() <= kMinWeight)
-        //     continue;
-        
-        // if (std::abs(node->getDistance()) >= surface_distance_thresh)
-        //     continue;
-
-        // octomap::point3d octoPoint = this->keyToCoord(key);
-        // pcl::PointXYZRGB point(octoPoint.x(), octoPoint.y(), octoPoint.z());
-
-        // if ((node->getRoiWeight() <= kMinWeight) &&
-        //      std::abs(node->getRoiDistance()) >= surface_distance_thresh)
-        // {
-        //     point.b = 0;
-        //     point.g = 255;
-        //     point.r = 0;
-        // }
-        // else{
-        //     point.b = 0;
-        //     point.g = 255;
-        //     point.r = 0;
-        // }
-
-        // cloud.push_back(point);
-
         octomap::OcTreeKey key = it.getKey();
 
         RoiTsdfOcTreeNode* node = this->search(key);

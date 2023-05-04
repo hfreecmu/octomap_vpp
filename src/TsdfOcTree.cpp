@@ -31,8 +31,7 @@ void TsdfOcTreeNode::updateVoxel(const float w, const float sdf,
         updated_weight = w * (defaultTruncationDistance + sdf) / 
             (defaultTruncationDistance - dropoffEpsilon);
         
-        if (updated_weight < 0.0)
-            updated_weight = 0;
+        updated_weight = std::max(updated_weight, 0.0f);
     }
 
     const float new_weight = voxelWeight + updated_weight;
@@ -43,17 +42,12 @@ void TsdfOcTreeNode::updateVoxel(const float w, const float sdf,
         return;
 
     voxelDistance = (sdf*updated_weight + voxelDistance*voxelWeight) / new_weight;
-    
-    if (voxelDistance < -defaultTruncationDistance)
-        voxelDistance = -defaultTruncationDistance;
 
-    if (voxelDistance > defaultTruncationDistance)
-        voxelDistance = defaultTruncationDistance;
+    voxelDistance =
+      (voxelDistance > 0.0) ? std::min(defaultTruncationDistance, voxelDistance)
+                            : std::max(-defaultTruncationDistance, voxelDistance);
 
-    if (new_weight > maxWeight)
-        voxelWeight = maxWeight;
-    else
-        voxelWeight = new_weight;
+    voxelWeight = std::min(maxWeight, new_weight);
 }
 
 
@@ -130,7 +124,7 @@ TsdfOcTreeNode* TsdfOcTree::updateNodeRecurs(TsdfOcTreeNode* node,
     }
 }
 
-void TsdfOcTree::extractSurfacePontCloud(pcl::PointCloud<pcl::PointXYZ> &cloud)
+void TsdfOcTree::extractSurfacePontCloud(pcl::PointCloud<pcl::PointXYZRGB> &cloud)
 {
     const float surface_distance_thresh = resolution*0.75;
 
@@ -154,7 +148,15 @@ void TsdfOcTree::extractSurfacePontCloud(pcl::PointCloud<pcl::PointXYZ> &cloud)
             continue;
 
         octomap::point3d octoPoint = this->keyToCoord(key);
-        pcl::PointXYZ point(octoPoint.x(), octoPoint.y(), octoPoint.z());
+        pcl::PointXYZRGB point;
+        
+        point.x = octoPoint.x();
+        point.y = octoPoint.y();
+        point.z = octoPoint.z();
+        
+        point.r = 0;
+        point.g = 255;
+        point.b = 0;
 
         cloud.push_back(point);
     }
