@@ -41,6 +41,11 @@ public:
     return getOccupancy();
   }
 
+  virtual double getVPLogOdds() const override
+  { 
+    return getLogOdds();
+  }
+
   virtual bool isHardUnknown() const override
   {
     //if in map we know it

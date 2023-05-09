@@ -74,6 +74,18 @@ public:
     return 0.0;
   }
 
+  virtual double getVPLogOdds() const override
+  { 
+    if (std::abs(weight) < 1e-6)
+      return 0.0; 
+
+    if (distance <= 0)
+      return FLT_MAX;
+
+    return -FLT_MAX;
+  }
+
+
   virtual bool isHardUnknown() const override
   {
      return (std::abs(weight) < 1e-6);
