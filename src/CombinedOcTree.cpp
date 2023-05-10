@@ -1,11 +1,11 @@
-#include "octomap_vpp/CombinedTsdfOcTree.h"
+#include "octomap_vpp/CombinedOcTree.h"
 #include "octomap_vpp/TsdfOcTree.h"
 #include <algorithm>
 
 namespace octomap_vpp
 {
 
-void CombinedOcTree::updateTsdfVoxel(const float w, const float sdf, 
+void CombinedOcTreeNode::updateTsdfVoxel(const float w, const float sdf, 
                                     const float defaultTruncationDistance,
                                     const float dropoffEpsilon,
                                     bool useWeightDropoff,
@@ -32,7 +32,8 @@ CombinedOcTreeNode* CombinedOcTree::updateCombinedNode(const octomap::OcTreeKey&
                                        const bool useWeightDropoff,
                                        const float maxWeight,
                                        const bool isOccupied,
-                                       const bool isRoi)
+                                       const bool isRoi,
+                                       const bool shouldUpdateOcc)
 {
     //idealy not occupied means not roi but leaving that up to caller
     float log_odds_update = isOccupied ? this->prob_hit_log : this->prob_miss_log;
@@ -48,7 +49,7 @@ CombinedOcTreeNode* CombinedOcTree::updateCombinedNode(const octomap::OcTreeKey&
 
     return updateComnbinedNodeRecurs(this->root, createdRoot, key, 0, w, sdf,
                             defaultTruncationDistance, dropoffEpsilon,
-                            useWeightDropoff, maxWeight, log_odds_update, roi_log_odds_update);
+                            useWeightDropoff, maxWeight, log_odds_update, roi_log_odds_update, shouldUpdateOcc);
 }
 
 CombinedOcTreeNode* CombinedOcTree::updateComnbinedNodeRecurs(CombinedOcTreeNode* node, 
@@ -61,7 +62,8 @@ CombinedOcTreeNode* CombinedOcTree::updateComnbinedNodeRecurs(CombinedOcTreeNode
                                              const bool useWeightDropoff,
                                              const float maxWeight,
                                              const float log_odds_update,
-                                             const float roi_log_odds_update)
+                                             const float roi_log_odds_update,
+                                             const bool shouldUpdateOcc)
 {
     bool created_node = false;
 
@@ -87,22 +89,25 @@ CombinedOcTreeNode* CombinedOcTree::updateComnbinedNodeRecurs(CombinedOcTreeNode
         //always lazy eval
         return updateComnbinedNodeRecurs(this->getNodeChild(node, pos), created_node, key, depth+1, w, sdf,
                                 defaultTruncationDistance, dropoffEpsilon, useWeightDropoff,
-                                maxWeight, isOccupied, isRoi);
+                                maxWeight, log_odds_update, roi_log_odds_update, shouldUpdateOcc);
 
     }
 
     // at last level, update node, end of recursion
     else {
-      //first, update loggodds (OccupancyOcTreeBase.hxx)
-      updateNodeLogOdds(node, log_odds_update);
+      if (shouldUpdateOcc)
+      {
+        //first, update loggodds (OccupancyOcTreeBase.hxx)
+        updateNodeLogOdds(node, log_odds_update);
 
-      //then update roiodds (RoiOcTree.cpp)
-      //note that if not occupied, should not be roi
-      //but we are going to let the caller determine that. not us
-      updateNodeRoiLogOdds(node, roi_log_odds_update);
+        //then update roiodds (RoiOcTree.cpp)
+        //note that if not occupied, should not be roi
+        //but we are going to let the caller determine that. not us
+        updateNodeRoiLogOdds(node, roi_log_odds_update);
+      }
 
       //lastly, we can update our tsdf
-      node->TsdfVoxel(w, sdf, defaultTruncationDistance,
+      node->updateTsdfVoxel(w, sdf, defaultTruncationDistance,
                       dropoffEpsilon, useWeightDropoff, maxWeight);
       return node;
     }
@@ -153,6 +158,18 @@ void CombinedOcTree::extractRoiSurfacePontCloud(pcl::PointCloud<pcl::PointXYZRGB
 
         cloud.push_back(point);
     }
+}
+
+void CombinedOcTree::updateNodeRoiLogOdds(CombinedOcTreeNode* node, const float& update) const
+{
+  node->addRoiValue(update);
+  if (node->getRoiLogOdds() < this->clamping_thres_min) {
+    node->setRoiLogOdds(this->clamping_thres_min);
+    return;
+  }
+  if (node->getRoiLogOdds() > this->clamping_thres_max) {
+    node->setRoiLogOdds(this->clamping_thres_max);
+  }
 }
 
 }

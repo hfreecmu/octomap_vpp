@@ -73,6 +73,7 @@ public:
                         const float dropoffEpsilon,
                         bool useWeightDropoff,
                         float maxWeight);
+
 protected:
     float distance;
     float weight;
@@ -94,7 +95,8 @@ public:
                                const bool useWeightDropoff,
                                const float maxWeight,
                                const bool isOccupied,
-                               const bool isRoi);
+                               const bool isRoi,
+                               const bool shouldUpdateOcc);
 
     CombinedOcTreeNode* updateComnbinedNodeRecurs(CombinedOcTreeNode* node,
                                     bool node_just_created,
@@ -106,9 +108,22 @@ public:
                                     const bool useWeightDropoff,
                                     const float maxWeight,
                                     const float log_odds_update,
-                                    const float roi_log_odds_update);
+                                    const float roi_log_odds_update,
+                                    const bool shouldUpdateOcc);
 
     void extractRoiSurfacePontCloud(pcl::PointCloud<pcl::PointXYZRGB> &cloud);
+
+    void updateNodeRoiLogOdds(CombinedOcTreeNode* node, const float& update) const;
+
+    /// queries whether a node is occupied according to the tree's parameter for "occupancy"
+    inline bool isNodeROI(const RoiOcTreeNode* node) const{
+        return (node->getRoiLogOdds() >= this->roi_prob_thres_log);
+    }
+
+    /// queries whether a node is occupied according to the tree's parameter for "occupancy"
+    inline bool isNodeROI(const RoiOcTreeNode& node) const{
+        return (node.getRoiLogOdds() >= this->roi_prob_thres_log);
+    }
 protected:
    /**
    * Static member object which ensures that this OcTree's prototype
