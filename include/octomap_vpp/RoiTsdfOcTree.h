@@ -105,7 +105,8 @@ public:
                                const float dropoffEpsilon,
                                const bool useWeightDropoff,
                                const float maxWeight,
-                               const bool isRoi);
+                               const bool isRoi,
+                               const octomap::point3d &cameraPosition);
 
     RoiTsdfOcTreeNode* updateRoiNodeRecurs(RoiTsdfOcTreeNode* node,
                                     bool node_just_created,
@@ -116,9 +117,14 @@ public:
                                     const float dropoffEpsilon,
                                     const bool useWeightDropoff,
                                     const float maxWeight,
-                                    const bool isRoi);
+                                    const bool isRoi,
+                                    const octomap::point3d &cameraPosition);
 
     void extractRoiSurfacePontCloud(pcl::PointCloud<pcl::PointXYZRGB> &cloud);
+
+    void extractFruitletClusters(std::unordered_map<uint8_t, pcl::PointCloud<pcl::PointXYZ>::Ptr> &fruitletClouds);
+    void updateAssociations(std::vector<int> &fruitletIds, std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &fruitletClouds);
+
 protected:
    /**
    * Static member object which ensures that this OcTree's prototype
@@ -145,6 +151,8 @@ protected:
 
   /// to ensure static initialization (only once)
   static StaticMemberInitializer ocTreeMemberInit;
+
+  uint8_t maxFruitletId;
 };
 
 }
