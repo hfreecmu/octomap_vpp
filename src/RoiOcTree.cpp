@@ -1,6 +1,9 @@
 #include "octomap_vpp/RoiOcTree.h"
 #include <boost/heap/fibonacci_heap.hpp>
 
+#include <boost/make_shared.hpp>
+#include <ros/ros.h>
+
 namespace octomap_vpp
 {
 
@@ -44,7 +47,10 @@ void RoiOcTreeNode::addRoiValue(const float& logOdds)
   roiValue += logOdds;
 }
 
-RoiOcTree::RoiOcTree(double resolution) : octomap::OccupancyOcTreeBase <RoiOcTreeNode>(resolution), roi_prob_thres_log(FLT_MIN)
+RoiOcTree::RoiOcTree(double resolution) 
+: octomap::OccupancyOcTreeBase <RoiOcTreeNode>(resolution), 
+roi_prob_thres_log(FLT_MIN),
+maxFruitletId(0)
 {
   ocTreeMemberInit.ensureLinking();
 }
@@ -95,7 +101,7 @@ void RoiOcTree::insertRegionScan(const octomap::Pointcloud &regionPoints, const 
   }
 }
 
-RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, float log_odds_update, bool lazy_eval) {
+RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, float log_odds_update, bool lazy_eval, bool updateLogOdds, bool isOcc) {
    // early abort (no change will happen).
    // may cause an overhead in some configuration, but more often helps
    RoiOcTreeNode* leaf = this->search(key);
@@ -115,19 +121,19 @@ RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, float log
      createdRoot = true;
    }
 
-   return updateNodeRoiRecurs(this->root, createdRoot, key, 0, log_odds_update, lazy_eval);
+   return updateNodeRoiRecurs(this->root, createdRoot, key, 0, log_odds_update, lazy_eval, updateLogOdds, isOcc);
  }
 
-RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, bool isRoi, bool lazy_eval)
+RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, bool isRoi, bool lazy_eval, bool updateLogOdds, bool isOcc)
 {
   float logOdds = this->prob_miss_log;
   if (isRoi)
     logOdds = this->prob_hit_log;
 
-  return updateNodeRoi(key, logOdds, lazy_eval);
+  return updateNodeRoi(key, logOdds, lazy_eval, updateLogOdds, isOcc);
 }
 
-RoiOcTreeNode* RoiOcTree::updateNodeRoiRecurs(RoiOcTreeNode* node, bool node_just_created, const octomap::OcTreeKey& key, unsigned int depth, const float& log_odds_update, bool lazy_eval)
+RoiOcTreeNode* RoiOcTree::updateNodeRoiRecurs(RoiOcTreeNode* node, bool node_just_created, const octomap::OcTreeKey& key, unsigned int depth, const float& log_odds_update, bool lazy_eval, bool updateLogOdds, bool isOcc)
 {
     bool created_node = false;
 
@@ -151,9 +157,9 @@ RoiOcTreeNode* RoiOcTree::updateNodeRoiRecurs(RoiOcTreeNode* node, bool node_jus
       }
 
       if (lazy_eval)
-        return updateNodeRoiRecurs(this->getNodeChild(node, pos), created_node, key, depth+1, log_odds_update, lazy_eval);
+        return updateNodeRoiRecurs(this->getNodeChild(node, pos), created_node, key, depth+1, log_odds_update, lazy_eval, updateLogOdds, isOcc);
       else {
-        RoiOcTreeNode* retval = updateNodeRoiRecurs(this->getNodeChild(node, pos), created_node, key, depth+1, log_odds_update, lazy_eval);
+        RoiOcTreeNode* retval = updateNodeRoiRecurs(this->getNodeChild(node, pos), created_node, key, depth+1, log_odds_update, lazy_eval, updateLogOdds, isOcc);
         // prune node if possible, otherwise set own probability
         // note: combining both did not lead to a speedup!
         if (this->pruneNode(node)){
@@ -173,6 +179,12 @@ RoiOcTreeNode* RoiOcTree::updateNodeRoiRecurs(RoiOcTreeNode* node, bool node_jus
       bool roiBefore = this->isNodeROI(node);
       updateNodeRoiLogOdds(node, log_odds_update);
       bool roiAfter = this->isNodeROI(node);
+
+      if (updateLogOdds)
+      {
+        float occ_log_odds_update = isOcc ? this->prob_hit_log : this->prob_miss_log;
+        updateNodeLogOdds(node, occ_log_odds_update);
+      }
 
       if (roiAfter && !roiBefore) // roi added
       {
@@ -348,6 +360,107 @@ void RoiOcTree::updateNodeRoiLogOdds(RoiOcTreeNode* node, const float& update) c
   }
   if (node->getRoiLogOdds() > this->clamping_thres_max) {
     node->setRoiLogOdds(this->clamping_thres_max);
+  }
+
+  if (node->getLogOdds() < this->clamping_thres_min) {
+    node->setLogOdds(this->clamping_thres_min);
+    return;
+  }
+  if (node->getLogOdds() > this->clamping_thres_max) {
+    node->setLogOdds(this->clamping_thres_max);
+  }
+}
+
+//TODO remove duplicate code
+void RoiOcTree::extractFruitletClusters(std::unordered_map<uint8_t, pcl::PointCloud<pcl::PointXYZ>::Ptr> &fruitletClouds)
+{
+
+    for(RoiOcTree::leaf_iterator it = this->begin_leafs(), end=this->end_leafs(); it!= end; ++it)
+    {
+        octomap::OcTreeKey key = it.getKey();
+
+        RoiOcTreeNode* node = this->search(key);
+        //should not happen
+        if (node == nullptr)
+            continue;
+
+        if (!this->isNodeROI(node))
+          continue;
+
+        uint8_t fruitletId;
+        if (!node->getFruitletId(fruitletId))
+          continue;
+
+        octomap::point3d octoPoint = this->keyToCoord(key);
+        pcl::PointXYZ point;
+        point.x = octoPoint.x();
+        point.y = octoPoint.y();
+        point.z = octoPoint.z();
+
+        if (fruitletClouds.find(fruitletId) == fruitletClouds.end())
+        {
+          std::pair<uint32_t, pcl::PointCloud<pcl::PointXYZ>::Ptr> 
+                                entry (fruitletId, boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>());
+                    fruitletClouds.insert(entry);
+        }
+
+        fruitletClouds.at(fruitletId)->push_back(point);
+    }
+}
+
+void RoiOcTree::updateAssociations(std::vector<int> &fruitletIds, std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &fruitletClouds)
+{
+  if (fruitletIds.size() != fruitletClouds.size())
+  {
+    ROS_WARN("Cloud sizes do not match. WHY???");
+    return;
+  }
+  
+  for (int i = 0; i < fruitletIds.size(); i++)
+  {
+    uint8_t fruitletId;
+
+    if (fruitletIds.at(i) == -1)
+    {
+      fruitletId = maxFruitletId;
+      maxFruitletId++;
+      if (maxFruitletId == 255)
+      {
+        ROS_WARN("WAAAAAAAY TOOO MANY FRUITLETS!!!");
+        return;
+      }
+    }
+    else
+    {
+      fruitletId = static_cast<uint8_t>(fruitletIds.at(i));
+    }
+
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr fruitletCloud = fruitletClouds.at(i);
+    for (const pcl::PointXYZRGB &point : *fruitletCloud)
+    {
+        octomap::point3d octoPoint(point.x, point.y, point.z);
+
+        octomap::OcTreeKey key;
+        bool keyCheck = this->coordToKeyChecked(octoPoint, key);
+
+        //since the full point cloud we insert
+        //is different than the segmented point clouds
+        //because of stupid radius filtering
+        //these two checks below might happen
+
+        //could happen
+        if (!keyCheck)
+          continue;
+
+        //could happen
+        RoiOcTreeNode* node = this->search(key);
+        if (node == nullptr)
+          continue;
+
+        node->updateFruitletId(fruitletId, 1.0);
+    }
+
+
   }
 }
 
