@@ -57,7 +57,7 @@ maxFruitletId(0)
 
 RoiOcTree::StaticMemberInitializer RoiOcTree::ocTreeMemberInit;
 
-void RoiOcTree::insertRegionScan(const octomap::Pointcloud &regionPoints, const octomap::Pointcloud &offRegionPoints)
+void RoiOcTree::insertRegionScan(const octomap::Pointcloud &regionPoints, const octomap::Pointcloud &offRegionPoints, octomap::point3d &cameraPosition)
 {
   //std::unordered_set<RoiOcTreeNode*> regionNodes;
   //std::unordered_set<RoiOcTreeNode*> offRegionNodes;
@@ -92,16 +92,16 @@ void RoiOcTree::insertRegionScan(const octomap::Pointcloud &regionPoints, const 
 
   for (const octomap::OcTreeKey &key : regionNodes)
   {
-    updateNodeRoi(key, true, false);
+    updateNodeRoi(key, true, false,cameraPosition);
   }
 
   for (const octomap::OcTreeKey &key : offRegionNodes)
   {
-    updateNodeRoi(key, false, false);
+    updateNodeRoi(key, false, false, cameraPosition);
   }
 }
 
-RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, float log_odds_update, bool lazy_eval, bool updateLogOdds, bool isOcc) {
+RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, float log_odds_update, bool lazy_eval, const octomap::point3d &cameraPosition, bool updateLogOdds, bool isOcc) {
    // early abort (no change will happen).
    // may cause an overhead in some configuration, but more often helps
    RoiOcTreeNode* leaf = this->search(key);
@@ -121,19 +121,20 @@ RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, float log
      createdRoot = true;
    }
 
-   return updateNodeRoiRecurs(this->root, createdRoot, key, 0, log_odds_update, lazy_eval, updateLogOdds, isOcc);
+   return updateNodeRoiRecurs(this->root, createdRoot, key, 0, log_odds_update, lazy_eval, cameraPosition, updateLogOdds, isOcc);
  }
 
-RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, bool isRoi, bool lazy_eval, bool updateLogOdds, bool isOcc)
+RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, bool isRoi, bool lazy_eval, const octomap::point3d &cameraPosition, bool updateLogOdds, bool isOcc)
 {
   float logOdds = this->prob_miss_log;
   if (isRoi)
     logOdds = this->prob_hit_log;
 
-  return updateNodeRoi(key, logOdds, lazy_eval, updateLogOdds, isOcc);
+  return updateNodeRoi(key, logOdds, lazy_eval, cameraPosition, updateLogOdds, isOcc);
 }
 
-RoiOcTreeNode* RoiOcTree::updateNodeRoiRecurs(RoiOcTreeNode* node, bool node_just_created, const octomap::OcTreeKey& key, unsigned int depth, const float& log_odds_update, bool lazy_eval, bool updateLogOdds, bool isOcc)
+RoiOcTreeNode* RoiOcTree::updateNodeRoiRecurs(RoiOcTreeNode* node, bool node_just_created, const octomap::OcTreeKey& key, unsigned int depth, const float& log_odds_update, bool lazy_eval, 
+                                              const octomap::point3d &cameraPosition, bool updateLogOdds, bool isOcc)
 {
     bool created_node = false;
 
@@ -157,9 +158,9 @@ RoiOcTreeNode* RoiOcTree::updateNodeRoiRecurs(RoiOcTreeNode* node, bool node_jus
       }
 
       if (lazy_eval)
-        return updateNodeRoiRecurs(this->getNodeChild(node, pos), created_node, key, depth+1, log_odds_update, lazy_eval, updateLogOdds, isOcc);
+        return updateNodeRoiRecurs(this->getNodeChild(node, pos), created_node, key, depth+1, log_odds_update, lazy_eval, cameraPosition, updateLogOdds, isOcc);
       else {
-        RoiOcTreeNode* retval = updateNodeRoiRecurs(this->getNodeChild(node, pos), created_node, key, depth+1, log_odds_update, lazy_eval, updateLogOdds, isOcc);
+        RoiOcTreeNode* retval = updateNodeRoiRecurs(this->getNodeChild(node, pos), created_node, key, depth+1, log_odds_update, lazy_eval, cameraPosition, updateLogOdds, isOcc);
         // prune node if possible, otherwise set own probability
         // note: combining both did not lead to a speedup!
         if (this->pruneNode(node)){
@@ -179,6 +180,8 @@ RoiOcTreeNode* RoiOcTree::updateNodeRoiRecurs(RoiOcTreeNode* node, bool node_jus
       bool roiBefore = this->isNodeROI(node);
       updateNodeRoiLogOdds(node, log_odds_update);
       bool roiAfter = this->isNodeROI(node);
+
+      node->addCameraPosition(cameraPosition);
 
       if (updateLogOdds)
       {

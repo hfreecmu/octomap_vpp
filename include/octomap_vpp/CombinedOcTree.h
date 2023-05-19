@@ -93,7 +93,8 @@ public:
                                const float defaultTruncationDistance,
                                const float dropoffEpsilon,
                                const bool useWeightDropoff,
-                               const float maxWeight);
+                               const float maxWeight,
+                               const octomap::point3d &cameraPosition);
 
     CombinedOcTreeNode* updateComnbinedNodeRecurs(CombinedOcTreeNode* node,
                                     bool node_just_created,
@@ -103,7 +104,8 @@ public:
                                     const float defaultTruncationDistance,
                                     const float dropoffEpsilon,
                                     const bool useWeightDropoff,
-                                    const float maxWeight);
+                                    const float maxWeight,
+                                    const octomap::point3d &cameraPosition);
 
     void extractRoiSurfacePontCloud(pcl::PointCloud<pcl::PointXYZRGB> &cloud);
 

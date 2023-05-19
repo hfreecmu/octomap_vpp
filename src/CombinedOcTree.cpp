@@ -34,7 +34,8 @@ CombinedOcTreeNode* CombinedOcTree::updateCombinedNode(const octomap::OcTreeKey&
                                        const float defaultTruncationDistance,
                                        const float dropoffEpsilon,
                                        const bool useWeightDropoff,
-                                       const float maxWeight)
+                                       const float maxWeight,
+                                       const octomap::point3d &cameraPosition)
 {
 
     bool createdRoot = false;
@@ -46,7 +47,7 @@ CombinedOcTreeNode* CombinedOcTree::updateCombinedNode(const octomap::OcTreeKey&
 
     return updateComnbinedNodeRecurs(this->root, createdRoot, key, 0, w, sdf,
                             defaultTruncationDistance, dropoffEpsilon,
-                            useWeightDropoff, maxWeight);
+                            useWeightDropoff, maxWeight, cameraPosition);
 }
 
 CombinedOcTreeNode* CombinedOcTree::updateComnbinedNodeRecurs(CombinedOcTreeNode* node, 
@@ -57,7 +58,8 @@ CombinedOcTreeNode* CombinedOcTree::updateComnbinedNodeRecurs(CombinedOcTreeNode
                                              const float defaultTruncationDistance,
                                              const float dropoffEpsilon,
                                              const bool useWeightDropoff,
-                                             const float maxWeight)
+                                             const float maxWeight,
+                                             const octomap::point3d &cameraPosition)
 {
     bool created_node = false;
 
@@ -83,7 +85,7 @@ CombinedOcTreeNode* CombinedOcTree::updateComnbinedNodeRecurs(CombinedOcTreeNode
         //always lazy eval
         return updateComnbinedNodeRecurs(this->getNodeChild(node, pos), created_node, key, depth+1, w, sdf,
                                 defaultTruncationDistance, dropoffEpsilon, useWeightDropoff,
-                                maxWeight);
+                                maxWeight, cameraPosition);
 
     }
 
@@ -92,6 +94,7 @@ CombinedOcTreeNode* CombinedOcTree::updateComnbinedNodeRecurs(CombinedOcTreeNode
       //lastly, we can update our tsdf
       node->updateTsdfVoxel(w, sdf, defaultTruncationDistance,
                       dropoffEpsilon, useWeightDropoff, maxWeight);
+      node->addCameraPosition(cameraPosition);
       return node;
     }
 }
