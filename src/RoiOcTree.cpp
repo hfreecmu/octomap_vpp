@@ -57,7 +57,7 @@ maxFruitletId(0)
 
 RoiOcTree::StaticMemberInitializer RoiOcTree::ocTreeMemberInit;
 
-void RoiOcTree::insertRegionScan(const octomap::Pointcloud &regionPoints, const octomap::Pointcloud &offRegionPoints, octomap::point3d &cameraPosition)
+void RoiOcTree::insertRegionScan(const octomap::Pointcloud &regionPoints, const octomap::Pointcloud &offRegionPoints, octomap::OcTreeKey &cameraPosition)
 {
   //std::unordered_set<RoiOcTreeNode*> regionNodes;
   //std::unordered_set<RoiOcTreeNode*> offRegionNodes;
@@ -92,7 +92,7 @@ void RoiOcTree::insertRegionScan(const octomap::Pointcloud &regionPoints, const 
 
   for (const octomap::OcTreeKey &key : regionNodes)
   {
-    updateNodeRoi(key, true, false,cameraPosition);
+    updateNodeRoi(key, true, false, cameraPosition);
   }
 
   for (const octomap::OcTreeKey &key : offRegionNodes)
@@ -101,7 +101,7 @@ void RoiOcTree::insertRegionScan(const octomap::Pointcloud &regionPoints, const 
   }
 }
 
-RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, float log_odds_update, bool lazy_eval, const octomap::point3d &cameraPosition, bool updateLogOdds, bool isOcc) {
+RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, float log_odds_update, bool lazy_eval, const octomap::OcTreeKey &cameraPosition, bool updateLogOdds, bool isOcc) {
    // early abort (no change will happen).
    // may cause an overhead in some configuration, but more often helps
    RoiOcTreeNode* leaf = this->search(key);
@@ -124,7 +124,7 @@ RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, float log
    return updateNodeRoiRecurs(this->root, createdRoot, key, 0, log_odds_update, lazy_eval, cameraPosition, updateLogOdds, isOcc);
  }
 
-RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, bool isRoi, bool lazy_eval, const octomap::point3d &cameraPosition, bool updateLogOdds, bool isOcc)
+RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, bool isRoi, bool lazy_eval, const octomap::OcTreeKey &cameraPosition, bool updateLogOdds, bool isOcc)
 {
   float logOdds = this->prob_miss_log;
   if (isRoi)
@@ -134,7 +134,7 @@ RoiOcTreeNode* RoiOcTree::updateNodeRoi(const octomap::OcTreeKey& key, bool isRo
 }
 
 RoiOcTreeNode* RoiOcTree::updateNodeRoiRecurs(RoiOcTreeNode* node, bool node_just_created, const octomap::OcTreeKey& key, unsigned int depth, const float& log_odds_update, bool lazy_eval, 
-                                              const octomap::point3d &cameraPosition, bool updateLogOdds, bool isOcc)
+                                              const octomap::OcTreeKey &cameraPosition, bool updateLogOdds, bool isOcc)
 {
     bool created_node = false;
 

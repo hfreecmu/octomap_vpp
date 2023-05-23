@@ -35,7 +35,7 @@ CombinedOcTreeNode* CombinedOcTree::updateCombinedNode(const octomap::OcTreeKey&
                                        const float dropoffEpsilon,
                                        const bool useWeightDropoff,
                                        const float maxWeight,
-                                       const octomap::point3d &cameraPosition)
+                                       const octomap::OcTreeKey &cameraPosition)
 {
 
     bool createdRoot = false;
@@ -59,7 +59,7 @@ CombinedOcTreeNode* CombinedOcTree::updateComnbinedNodeRecurs(CombinedOcTreeNode
                                              const float dropoffEpsilon,
                                              const bool useWeightDropoff,
                                              const float maxWeight,
-                                             const octomap::point3d &cameraPosition)
+                                             const octomap::OcTreeKey &cameraPosition)
 {
     bool created_node = false;
 

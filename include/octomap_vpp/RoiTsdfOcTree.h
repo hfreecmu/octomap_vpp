@@ -106,7 +106,7 @@ public:
                                const bool useWeightDropoff,
                                const float maxWeight,
                                const bool isRoi,
-                               const octomap::point3d &cameraPosition);
+                               const octomap::OcTreeKey &cameraPosition);
 
     RoiTsdfOcTreeNode* updateRoiNodeRecurs(RoiTsdfOcTreeNode* node,
                                     bool node_just_created,
@@ -118,7 +118,7 @@ public:
                                     const bool useWeightDropoff,
                                     const float maxWeight,
                                     const bool isRoi,
-                                    const octomap::point3d &cameraPosition);
+                                    const octomap::OcTreeKey &cameraPosition);
 
     void extractRoiSurfacePontCloud(pcl::PointCloud<pcl::PointXYZRGB> &cloud);
 

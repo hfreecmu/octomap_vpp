@@ -2,6 +2,7 @@
 #define VPOCTREE_H
 
 #include <octomap/OcTreeNode.h>
+#include <octomap/OcTreeKey.h>
 #include <unordered_map>
 
 namespace octomap_vpp
@@ -73,17 +74,17 @@ public:
     fruitletIds.at(fruitletId) = fruitletIds.at(fruitletId) + weight;
   }
 
-  void addCameraPosition(const octomap::point3d &cameraPosition)
+  void addCameraPosition(const octomap::OcTreeKey &key)
   {
-    cameraPositions.push_back(cameraPosition);
+    cameraPositions.insert(key);
   }
 
-  std::vector<octomap::point3d>& getCameraPositions() {return cameraPositions;}
+  octomap::KeySet& getCameraPositions() {return cameraPositions;}
 
 public:
   //fruitletIds stores weight
   std::unordered_map<uint8_t, float> fruitletIds;
-  std::vector<octomap::point3d> cameraPositions;
+  octomap::KeySet cameraPositions;
 };
 
 }

@@ -40,7 +40,7 @@ RoiTsdfOcTreeNode* RoiTsdfOcTree::updateRoiNode(const octomap::OcTreeKey& key,
                                        const bool useWeightDropoff,
                                        const float maxWeight,
                                        const bool isRoi,
-                                       const octomap::point3d &cameraPosition)
+                                       const octomap::OcTreeKey &cameraPosition)
 {
     bool createdRoot = false;
     if (this->root == NULL){
@@ -64,7 +64,7 @@ RoiTsdfOcTreeNode* RoiTsdfOcTree::updateRoiNodeRecurs(RoiTsdfOcTreeNode* node,
                                              const bool useWeightDropoff,
                                              const float maxWeight,
                                              const bool isRoi,
-                                             const octomap::point3d &cameraPosition)
+                                             const octomap::OcTreeKey &cameraPosition)
 {
     bool created_node = false;
 
