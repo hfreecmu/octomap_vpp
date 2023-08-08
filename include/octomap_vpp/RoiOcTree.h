@@ -125,14 +125,14 @@ public:
 
   virtual std::string getTreeType() const {return "RoiOcTree";}
 
-  void insertRegionScan(const octomap::Pointcloud &regionPoints, const octomap::Pointcloud &offRegionPoints, octomap::OcTreeKey &cameraPosition);
+  void insertRegionScan(const octomap::Pointcloud &regionPoints, const octomap::Pointcloud &offRegionPoints);
 
-  RoiOcTreeNode* updateNodeRoi(const octomap::OcTreeKey& key, float log_odds_update, bool lazy_eval, const octomap::OcTreeKey &cameraPosition, bool updateLogOdds=false, bool isOcc=false);
+  RoiOcTreeNode* updateNodeRoi(const octomap::OcTreeKey& key, float log_odds_update, bool lazy_eval, bool updateLogOdds=false, bool isOcc=false);
 
-  RoiOcTreeNode* updateNodeRoi(const octomap::OcTreeKey& key, bool isRoi, bool lazy_eval, const octomap::OcTreeKey &cameraPosition, bool updateLogOdds=false, bool isOcc=false);
+  RoiOcTreeNode* updateNodeRoi(const octomap::OcTreeKey& key, bool isRoi, bool lazy_eval, bool updateLogOdds=false, bool isOcc=false);
 
   RoiOcTreeNode* updateNodeRoiRecurs(RoiOcTreeNode* node, bool node_just_created, const octomap::OcTreeKey& key, unsigned int depth, const float& log_odds_update, bool lazy_eval, 
-                                     const octomap::OcTreeKey &cameraPosition, bool updateLogOdds=false, bool isOcc=false);
+                                    bool updateLogOdds=false, bool isOcc=false);
 
   inline octomap::KeySet getRoiKeys()
   {
@@ -456,9 +456,6 @@ public:
     }
     return value;
   }
-
-  void extractFruitletClusters(std::unordered_map<uint8_t, pcl::PointCloud<pcl::PointXYZ>::Ptr> &fruitletClouds);
-  void updateAssociations(std::vector<int> &fruitletIds, std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &fruitletClouds);
 
   struct CoverageInfo
   {
